@@ -1,0 +1,43 @@
+name: Windows Electron Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Stabilize npm
+        run: npm i -g npm@10.8.2
+
+      - name: Clean install dependencies
+        shell: pwsh
+        run: |
+          if (Test-Path node_modules) { Remove-Item node_modules -Recurse -Force }
+          if (Test-Path package-lock.json) { Remove-Item package-lock.json -Force }
+          npm install --include=dev --legacy-peer-deps --no-audit --no-fund
+
+      - name: Verify toolchain
+        run: |
+          npx vite --version
+          npx electron-builder --version
+
+      - name: Build Windows EXE
+        run: npm run dist:win
+
+      - name: Upload Windows artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SECAB-Couplage-Expert-Premium-Windows
+          path: release/windows/**
